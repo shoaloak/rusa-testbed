@@ -1,0 +1,3 @@
+[submodule "restler/restler-fuzzer"]
+	path = restler/restler-fuzzer
+	url = https://github.com/microsoft/restler-fuzzer
