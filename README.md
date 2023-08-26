@@ -1,6 +1,6 @@
 # Rusa Testbed
 
-Multiple fuzzers/testers to compare against.
+A testbed to evaluate Rusa, a feedback driven fuzzer for Java REST applications.
 
 ## Building
 
@@ -25,5 +25,4 @@ git submodule update --init --recursive
 ## Applications
 
 - restler: [RESTler](https://github.com/microsoft/restler-fuzzer)
-- zap: [Zed Attack Proxy](https://www.zaproxy.org/) [(src)](https://github.com/zaproxy/zaproxy)
-- burp: [Burp Suite](https://portswigger.net/burp)
+  - this one is moot, since RESTler doesn't understand SQLi, only 500
