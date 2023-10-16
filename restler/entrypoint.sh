@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 # Any subsequent(*) commands which fail will cause the shell script to exit immediately
 set -e
 
 # Definitions
-readonly TIMEOUT_SEC=30s
+readonly TIMEOUT_SEC=30
 
 # Start instrumented server
 java \
@@ -21,12 +21,12 @@ sleep 5
 # time budget is #hours.
 #0.017 about 1 minute
 #0.0003 about 1 sec
-readonly TIME_BUDGET=`expr $TIMEOUT_SEC \* 0.0003`
+time_budget=`awk "BEGIN {$TIMEOUT_SEC * 0.0003}"`
 
 #timeout -k $TIMEOUT_SEC $TIMEOUT_SEC
 start_time=`date +%s`
 python3 ./restler/restler.py \
-        --time_budget $TIME_BUDGET \
+        --time_budget $time_budget \
         --fuzzing_mode bfs-fast \
         --restler_grammar Compile/grammar.py \
         --custom_mutations Compile/dict.json \
@@ -46,6 +46,8 @@ return_code="$?"
 # Calculate time taken
 stop_time=`date +%s`
 total=`expr $stop_time - $start_time`
+
+echo "Total time taken: $total seconds"
 
 # Decide if server or fuzzer halted
 if [ $job_id -eq $FUZZ_PID ]; then
