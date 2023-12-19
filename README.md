@@ -1,14 +1,15 @@
 # Rusa Testbed
 
-A testbed to evaluate Rusa, a feedback driven fuzzer for Java REST applications.
+A testbed to evaluate Rusa, a feedback-driven fuzzer for Java Spring REST applications.
 
-## Building
+## Building and running
 
-Build images using `build.sh`.
+- Build the images using `build.sh` in `scripts`.
+- Run the containers using `run.sh` in `scripts`.
 
 ## Dependencies
 
-Don't forget git submodules.
+You need Docker and don't forget git submodules.
 
 ```bash
 git submodule update --init --recursive

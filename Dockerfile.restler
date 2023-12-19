@@ -1,3 +1,6 @@
+################################################################################
+# OpenAPI compile stage
+################################################################################
 # Dotnet required for compiling grammar, builds RESTler as well
 FROM mcr.microsoft.com/dotnet/sdk:6.0-alpine as compile
 
@@ -21,14 +24,27 @@ RUN ./build/restler/Restler compile --api_spec openapi.yml
 # grammar is stored in ./Compile
 
 ################################################################################
+# Main stage
+################################################################################
 # Use Ubuntu Jammy as foundation
 FROM ubuntu:22.04 as base
+LABEL org.opencontainers.image.authors="dev@axelkoolhaas.com"
+
+# Default arguments, THESE SHOULD BE OVERRIDEN
+ARG PREFIX="org.springframework.samples.petclinic.repository.jdbc."
+ARG TARGET="JdbcVetRepositoryImpl:vulnFindById"
+ARG VULN=vuln1
+
+# Propegate build time args to runtime as well
+ENV PREFIX=${PREFIX}
+ENV TARGET=${TARGET}
+ENV VULN=${VULN}
 
 # Install dependencies (OpenJDK17 and Python3.10)
 # and fix java certificate issues by updating SSL certs
 # and clear apt cache
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && apt-get install -y \
         ca-certificates-java \
         openjdk-17-jdk \
 	    python3 \
@@ -57,7 +73,7 @@ USER app
 RUN java \
     -jar rusa-jar-with-dependencies.jar \
     --file vulnserver.jar\
-    --target org.springframework.samples.petclinic.repository.jdbc.JdbcVetRepositoryImpl:findById \
+    --target ${PREFIX}${TARGET} \
     && pip3 install --user --requirement ./restler/requirements.txt
 
 ENTRYPOINT ["./entrypoint.sh"]

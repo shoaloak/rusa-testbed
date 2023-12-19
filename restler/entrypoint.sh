@@ -9,7 +9,7 @@ readonly TIMEOUT_SEC=30
 # Start instrumented server
 java \
     -javaagent:rusa-jar-with-dependencies.jar=distanceTree=distance_tree.json,mode=standalone \
-    -jar vulnserver.jar &
+    -jar vulnserver.jar --feature.unsafe="${VULN}" &
 SERVER_PID=$!
 
 # Wait for server to start (usually ~3s startup time)
