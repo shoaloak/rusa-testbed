@@ -9,7 +9,9 @@ readonly TIMEOUT_SEC=30
 # Start instrumented server
 java \
     -javaagent:rusa-jar-with-dependencies.jar=distanceTree=distance_tree.json,mode=standalone \
-    -jar vulnserver.jar --feature.unsafe="${VULN}" &
+    -jar vulnserver.jar \
+        --feature.unsafe="${VULN}" \
+        --spring.datasource.url="${DB}" &
 SERVER_PID=$!
 
 # Wait for server to start (usually ~3s startup time)
@@ -21,12 +23,12 @@ sleep 5
 # time budget is #hours.
 #0.017 about 1 minute
 #0.0003 about 1 sec
-time_budget=`awk "BEGIN {$TIMEOUT_SEC * 0.0003}"`
+time_budget=$(awk "BEGIN {print $TIMEOUT_SEC * 0.0003}")
 
 #timeout -k $TIMEOUT_SEC $TIMEOUT_SEC
-start_time=`date +%s`
+start_time=$(date +%s)
 python3 ./restler/restler.py \
-        --time_budget $time_budget \
+        --time_budget "$time_budget" \
         --fuzzing_mode bfs-fast \
         --restler_grammar Compile/grammar.py \
         --custom_mutations Compile/dict.json \
@@ -44,8 +46,8 @@ wait -n -p job_id $SERVER_PID $FUZZ_PID
 return_code="$?"
 
 # Calculate time taken
-stop_time=`date +%s`
-total=`expr $stop_time - $start_time`
+stop_time=$(date +%s)
+total=$((stop_time - start_time))
 
 echo "Total time taken: $total seconds"
 

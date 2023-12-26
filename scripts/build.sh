@@ -22,6 +22,4 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --file "${SCRIPT_PATH}/../Dockerfile.restler" \
         --tag "testbed-restler-${vuln_no}" \
         "${SCRIPT_PATH}/../"
-    # TODO: fix the entrypoint before removing the exit
-    exit
 done
