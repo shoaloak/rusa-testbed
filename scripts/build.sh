@@ -7,7 +7,7 @@ set -e
 readonly SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Load configuration
-source "${SCRIPT_PATH}/config.sh"
+source "${SCRIPT_PATH}/_config.sh"
 
 for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
@@ -22,4 +22,5 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --file "${SCRIPT_PATH}/../Dockerfile.restler" \
         --tag "testbed-restler-${vuln_no}" \
         "${SCRIPT_PATH}/../"
+    break
 done
