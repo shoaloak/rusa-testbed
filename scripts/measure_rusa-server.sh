@@ -3,7 +3,7 @@
 
 readonly SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-readonly ARG_DISTANCE_TREE='distanceTree=resources/distance_tree.json' # seems path fucks shit up
+readonly ARG_DISTANCE_TREE='distanceTree=resources/distance_tree.json'
 readonly ARG_MODE="mode=standalone"
 
 readonly RUSA_ARGS="$ARG_DISTANCE_TREE,$ARG_MODE,$ARG_RESULTS_PATH"

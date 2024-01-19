@@ -10,6 +10,7 @@ readonly SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 source "${SCRIPT_PATH}/_config.sh"
 
 for vuln_no in "${TARGET_KEYS[@]}"; do
+    # vuln_no="vuln1" # DEBUG
     target="${TARGETS[$vuln_no]}"
 
     print_line
@@ -22,5 +23,5 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --file "${SCRIPT_PATH}/../Dockerfile.restler" \
         --tag "testbed-restler-${vuln_no}" \
         "${SCRIPT_PATH}/../"
-    break
+    # break # DEBUG
 done

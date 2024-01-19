@@ -3,21 +3,22 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+readonly me=$(basename "$0")
+
 # Definitions
 readonly TIMEOUT_SEC=30 # TODO set appropriate timeout
 readonly RESULTS_FILE="traversed.result"
 readonly ARG_DISTANCE_TREE="distanceTree=distance_tree.json"
 readonly ARG_MODE="mode=standalone"
-readonly ARG_RESULTS_PATH="resultsPath=\"${RESULTS_FILE}\""
+readonly ARG_RESULTS_PATH="resultsPath=${RESULTS_FILE}"
 
 readonly LOG_TO_FILE="entrypoint.log"
 readonly LOG_TO_STDOUT="true"
 log() {
     local message="$1"
-    local timestamp=$(date '+%T.%3N') # %3N doesn't work on macOS
 
     # Format the log message
-    local formatted_message="[$timestamp] $message"
+    local formatted_message="[${me}] ${message}"
 
     if [ -n "$LOG_TO_FILE" ]; then
         echo "$formatted_message" >> "$LOG_TO_FILE"
@@ -29,9 +30,25 @@ log() {
 }
 
 store_results() {
-    cp -r RestlerResults /host_result_folder/RestlerResults
-    cp "${LOG_TO_FILE}" /host_result_folder/
-    cp "${RESULTS_FILE}" /host_result_folder/ # TODO FIX
+    # Check if results file exists and copy if it does
+    if [ -f "$RESULTS_FILE" ]; then
+        cp "${RESULTS_FILE}" /host_result_folder/
+    else
+        log "ERROR: results file not found!"
+    fi 
+
+    if [ -d "RestlerResults" ]; then
+        cp -r RestlerResults /host_result_folder/RestlerResults
+    else
+        log "ERROR: RestlerResults folder not found!"
+    fi
+
+    if [ -f "${LOG_TO_FILE}" ]; then
+        cp "${LOG_TO_FILE}" /host_result_folder/
+    else
+        # there is no log, printf instead
+        printf "ERROR: log file not found!"
+    fi
 }
 
 # Start instrumented Spring server
@@ -43,8 +60,8 @@ java \
         --spring.datasource.url="${DB}" &
 SERVER_PID=$!
 
-# Wait for server to start (usually ~3s startup time)
-sleep 5
+# Wait for server to start
+sleep 10 # usually takes 5s, but wait 10s to be safe
 
 # time_budget 1 == 1 hour
 # BUDGET_HOUR=1
@@ -88,8 +105,10 @@ log "total time taken: $total seconds"
 # Check which process finished first
 if [ "$first_finished_pid" -eq "$FUZZ_PID" ]; then
     echo "Fuzzer finished"
+    kill $SERVER_PID
 
     if [ "$return_code" -eq 0 ]; then
+        sleep 1 # Sleep a bit to ensure traversed.result is written
         store_results
         :
     elif [ "$return_code" -eq -1 ]; then
@@ -98,17 +117,16 @@ if [ "$first_finished_pid" -eq "$FUZZ_PID" ]; then
     elif [ "$return_code" -eq 1 ]; then
         log "ERROR: Couldn't connect to ZMQ!"
     fi
-
-    kill $SERVER_PID
 else
     # Server halted
     echo "SQLi detected"
     kill $FUZZ_PID
 
     if [ "$return_code" -eq 0 ]; then
+        sleep 1 # Sleep a bit to ensure traversed.result is written
         store_results
     else
-        # This is very unlikely
+        # This is very unlikely, if it ever happens, PM me :)
         log "ERROR: Spring server crashed!"
     fi
 fi
