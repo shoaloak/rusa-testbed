@@ -8,11 +8,14 @@ readonly SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Load configuration
 source "${SCRIPT_PATH}/_config.sh"
+# Load CPU functions
+source "${SCRIPT_PATH}/_cpu.sh"
 
 # Definitions
 readonly DB=petclinic-db-postgresql
 readonly TIMESTAMP=$(date "+%Y%m%d_%H%M%S")
 readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
+readonly CPU=$(get_target_cpu)
 
 # Initialize
 if ! docker network ls | grep -qw testbed-network; then
@@ -35,7 +38,8 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
     # vuln_no="vuln1" # DEBUG
     target="${TARGETS[$vuln_no]}"
     print_line
-    printf "running 'testbed-restler-%s' for %s\n\n" "$vuln_no" "$target"
+    printf "running 'testbed-restler-%s' for %s\nCPUs=%s\n\n" \
+        "$vuln_no" "$target" "$CPU"
 
     # Database
     echo "Starting database..."
@@ -53,6 +57,7 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
     # Server
     echo "Executing container for vulnerability ${vuln_no} (${target})"
     docker run -ti \
+        --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
         --network testbed-network \
         --volume "${RESULT_PATH}/${vuln_no}":/host_result_folder \
         -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
