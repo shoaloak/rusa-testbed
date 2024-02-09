@@ -56,7 +56,7 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --network testbed-network \
         -e POSTGRES_DB=petclinic \
         -e POSTGRES_PASSWORD=petclinic \
-        -v "$SCRIPT_PATH/resources/postgresql":/docker-entrypoint-initdb.d/ \
+        -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/ \
         postgres:16.0
     # sleep 4 # usually takes 2s, but wait 4s to be safe
     until check_postgres; do
