@@ -51,6 +51,12 @@ store_results() {
     fi
 }
 
+# Check if the server is ready by polling the health endpoint
+check_server_ready() {
+  curl -s http://localhost:9966/petclinic/actuator/health | grep '"status":"UP"'
+  return $?
+}
+
 # Start instrumented Spring server
 readonly RUSA_ARGS="$ARG_DISTANCE_TREE,$ARG_MODE,$ARG_RESULTS_PATH"
 java \
@@ -61,7 +67,11 @@ java \
 SERVER_PID=$!
 
 # Wait for server to start
-sleep 10 # usually takes 5s, but wait 10s to be safe
+#sleep 10 # usually takes 5s, but wait 10s to be safe
+until check_server_ready; do
+  echo "Waiting for server to be ready..."
+  sleep 1
+done
 
 # time_budget 1 == 1 hour
 # BUDGET_HOUR=1

@@ -17,6 +17,12 @@ readonly TIMESTAMP=$(date "+%Y%m%d_%H%M%S")
 readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
 readonly CPU=$(get_target_cpu)
 
+# Function to check if the DB is ready
+check_postgres() {
+  docker exec "${DB}" pg_isready -U postgres
+  return $?
+}
+
 # Initialize
 if ! docker network ls | grep -qw testbed-network; then
     echo "Network does not exist. Creating network..."
@@ -52,7 +58,11 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         -e POSTGRES_PASSWORD=petclinic \
         -v "$SCRIPT_PATH/resources/postgresql":/docker-entrypoint-initdb.d/ \
         postgres:16.0
-    sleep 4 # usually takes 2s, but wait 4s to be safe
+    # sleep 4 # usually takes 2s, but wait 4s to be safe
+    until check_postgres; do
+        echo "Waiting for PostgreSQL to be ready..."
+        sleep 1
+    done
 
     # Server
     echo "Executing container for vulnerability ${vuln_no} (${target})"
