@@ -71,11 +71,11 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --network testbed-network \
         --volume "${RESULT_PATH}/${vuln_no}":/host_result_folder \
         -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
+        -e TIMEOUT_SEC=30 \
         "testbed-restler-${vuln_no}"
 
     # Stop database
     docker stop petclinic-db-postgresql
-    # break # DEBUG
 done
 
 # Remove network

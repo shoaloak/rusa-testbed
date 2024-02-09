@@ -3,10 +3,15 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-readonly me=$(basename "$0")
+# Environment variable sanity check
+if [ -z "${VULN}" ] || [ -z "${DB}" ] || [ -z "${TIMEOUT_SEC}" ]; then
+  echo "Error: Required environment variable(s) not defined."
+  exit 1
+fi
 
 # Definitions
-readonly TIMEOUT_SEC=30 # TODO set appropriate timeout
+readonly me=$(basename "$0")
+
 readonly RESULTS_FILE="traversed.result"
 readonly ARG_DISTANCE_TREE="distanceTree=distance_tree.json"
 readonly ARG_MODE="mode=standalone"
