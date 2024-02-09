@@ -30,7 +30,7 @@ RUN ./build/restler/Restler compile --api_spec openapi.yml
 FROM ubuntu:22.04 as base
 LABEL org.opencontainers.image.authors="dev@axelkoolhaas.com"
 
-# Default arguments, THESE SHOULD BE OVERRIDEN
+# Default arguments, THESE SHOULD BE OVERRIDDEN
 ARG PREFIX="org.springframework.samples.petclinic.repository.jdbc."
 ARG TARGET="JdbcVetRepositoryImpl:vulnFindById"
 ARG VULN=vuln1
