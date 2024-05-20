@@ -1,3 +1,7 @@
 [submodule "restler/restler-fuzzer"]
 	path = restler/restler-fuzzer
 	url = https://github.com/microsoft/restler-fuzzer
+[submodule "restler/restler-mod"]
+	path = restler/restler-mod
+	url = https://github.com/shoaloak/restler-mod
+	branch = test-pull
