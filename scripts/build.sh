@@ -20,7 +20,7 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         --build-arg PREFIX="${TARGET_PREFIX}" \
         --build-arg TARGET="${target}" \
         --build-arg VULN="${vuln_no}" \
-        --file "${SCRIPT_PATH}/../Dockerfile.restler" \
+        --file "${SCRIPT_PATH}/../Dockerfile.restler-mod" \
         --tag "testbed-restler-${vuln_no}" \
         "${SCRIPT_PATH}/../"
 done
