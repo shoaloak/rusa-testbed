@@ -58,7 +58,7 @@ store_results() {
 
 # Check if the server is ready by polling the health endpoint
 check_server_ready() {
-  curl -s http://localhost:9966/petclinic/actuator/health | grep '"status":"UP"'
+  curl -s http://localhost:9966/petclinic/actuator/health | grep '"status":"UP"' > /dev/null
   return $?
 }
 
