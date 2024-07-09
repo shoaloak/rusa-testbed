@@ -16,6 +16,7 @@ readonly DB=petclinic-db-postgresql
 readonly TIMESTAMP=$(date "+%Y%m%d_%H%M%S")
 readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
 readonly CPU=$(get_target_cpu)
+readonly TIMEOUT=$((5*60*60)) # 5 hours
 
 # Function to check if the DB is ready
 check_postgres() {
@@ -40,6 +41,7 @@ if ! mkdir -p "${RESULT_PATH}"; then
     exit 1
 fi
 
+# RESTler
 for vuln_no in "${TARGET_KEYS[@]}"; do
     # vuln_no="vuln1" # DEBUG
     target="${TARGETS[$vuln_no]}"
@@ -72,10 +74,54 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
         docker run -ti \
             --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
             --network testbed-network \
-            --volume "${RESULT_PATH}/${vuln_no}/${i}":/host_result_folder \
+            --volume "${RESULT_PATH}/${vuln_no}/restler/${i}":/host_result_folder \
             -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
-            -e TIMEOUT_SEC=30 \
-            "testbed-restler-${vuln_no}"
+            -e TIMEOUT_SEC=${TIMEOUT} \
+            "testbed-${vuln_no}" restler
+
+        # Stop database
+        docker stop petclinic-db-postgresql
+    done
+done
+
+echo "50% done"
+
+# Rusa
+for vuln_no in "${TARGET_KEYS[@]}"; do
+    # vuln_no="vuln1" # DEBUG
+    target="${TARGETS[$vuln_no]}"
+    print_line
+    printf "running 'testbed-rusa-%s' for %s\nCPUs=%s\n\n" \
+        "$vuln_no" "$target" "$CPU"
+
+    for i in {1..3}; do
+        echo "Iteration $i for vulnerability ${vuln_no} (${target})"
+
+        # Database
+        echo "Starting database..."
+        docker run \
+            --rm \
+            --detach \
+            --name "${DB}" \
+            --network testbed-network \
+            -e POSTGRES_DB=petclinic \
+            -e POSTGRES_PASSWORD=petclinic \
+            -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/ \
+            postgres:16.0
+        until check_postgres; do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 1
+        done
+
+        # Server
+        echo "Executing container for vulnerability ${vuln_no} (${target})"
+        docker run -ti \
+            --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
+            --network testbed-network \
+            --volume "${RESULT_PATH}/${vuln_no}/rusa/${i}":/host_result_folder \
+            -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
+            -e TIMEOUT_SEC=${TIMEOUT} \
+            "testbed-${vuln_no}" rusa
 
         # Stop database
         docker stop petclinic-db-postgresql

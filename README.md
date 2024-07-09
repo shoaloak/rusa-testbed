@@ -23,4 +23,6 @@ git submodule update --init --recursive
 
 ## Applications
 
-- restler: [RESTler](https://github.com/microsoft/restler-fuzzer)
+- Rusa: [Rusa](https://github.com/shoaloak/rusa)
+- RESTler modified: [RESTler /w dynamic feedback](https://github.com/shoaloak/restler-mod)
+- RESTler original: [RESTler](https://github.com/microsoft/restler-fuzzer)

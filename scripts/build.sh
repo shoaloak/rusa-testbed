@@ -14,13 +14,13 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
 
     print_line
-    echo "Building image 'testbed-restler-${vuln_no}' for ${target}"
+    echo "Building image 'testbed-${vuln_no}' for ${target}"
 
     docker build \
         --build-arg PREFIX="${TARGET_PREFIX}" \
         --build-arg TARGET="${target}" \
         --build-arg VULN="${vuln_no}" \
         --file "${SCRIPT_PATH}/../Dockerfile.restler-mod" \
-        --tag "testbed-restler-${vuln_no}" \
+        --tag "testbed-${vuln_no}" \
         "${SCRIPT_PATH}/../"
 done
