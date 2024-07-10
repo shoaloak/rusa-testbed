@@ -16,6 +16,7 @@ readonly RESULTS_FILE="traversed.result"
 readonly ARG_DISTANCE_TREE="distanceTree=distance_tree.json"
 readonly ARG_MODE="mode=standalone"
 readonly ARG_RESULTS_PATH="resultsPath=${RESULTS_FILE}"
+readonly BACKEND_OUT="java.log"
 
 readonly LOG_TO_FILE="entrypoint.log"
 readonly LOG_TO_STDOUT="true"
@@ -48,6 +49,12 @@ store_results() {
         log "ERROR: RestlerResults folder not found!"
     fi
 
+    if [ -f "${BACKEND_OUT}" ]; then
+        cp "${BACKEND_OUT}" /host_result_folder/
+    else
+        log "ERROR: backend log file not found!"
+    fi
+
     if [ -f "${LOG_TO_FILE}" ]; then
         cp "${LOG_TO_FILE}" /host_result_folder/
     else
@@ -64,11 +71,11 @@ check_server_ready() {
 
 # Start instrumented Spring server
 readonly RUSA_ARGS="$ARG_DISTANCE_TREE,$ARG_MODE,$ARG_RESULTS_PATH"
-java \
+(java \
     -javaagent:rusa-jar-with-dependencies.jar="${RUSA_ARGS}" \
     -jar vulnserver.jar \
         --feature.unsafe="${VULN}" \
-        --spring.datasource.url="${DB}" &
+        --spring.datasource.url="${DB}" 2>&1 | tee "${BACKEND_OUT}") &
 SERVER_PID=$!
 
 # Wait for server to start
@@ -119,14 +126,10 @@ log "total time taken: $total seconds"
 
 # Check which process finished first
 if [ "$first_finished_pid" -eq "$FUZZ_PID" ]; then
-    echo "Fuzzer finished"
+    log "Fuzzer finished"
     kill $SERVER_PID
 
-    if [ "$return_code" -eq 0 ]; then
-        sleep 1 # Sleep a bit to ensure traversed.result is written
-        store_results
-        :
-    elif [ "$return_code" -eq -1 ]; then
+    if [ "$return_code" -eq -1 ]; then
         log "ERROR: RESTler crashed!"
         :
     elif [ "$return_code" -eq 1 ]; then
@@ -134,14 +137,14 @@ if [ "$first_finished_pid" -eq "$FUZZ_PID" ]; then
     fi
 else
     # Server halted
-    echo "SQLi detected"
+    log "Server halted, likely SQLi"
     kill $FUZZ_PID
 
-    if [ "$return_code" -eq 0 ]; then
-        sleep 1 # Sleep a bit to ensure traversed.result is written
-        store_results
-    else
+    if [ "$return_code" -ne 0 ]; then
         # This is very unlikely, if it ever happens, PM me :)
         log "ERROR: Spring server crashed!"
     fi
 fi
+
+sleep 1 # Sleep a bit to ensure traversed.result is written
+store_results
