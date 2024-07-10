@@ -33,8 +33,10 @@ RUN sed 's/Compile\/defaultDict/'"$DICT"'/g' ./Compile/config.json > "$CONF".jso
         --api_spec openapi.yml \
         --sql initDB.sql
 
-# Recompile
+# Recompile, TEMPORARY: backup engine settings
+RUN cp ./Compile/engine_settings.json engine.bak
 RUN ./build/restler/Restler compile $CONF.json
+RUN cp engine.bak ./Compile/engine_settings.json
 # grammar is stored in ./Compile
 
 ################################################################################
