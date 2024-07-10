@@ -106,6 +106,7 @@ python3 ./restler/restler.py \
         --enable_checkers ['*'] \
         --dynamic \
         --disable_checkers ['namespacerule'] \
+        --ignore_feedback "$IGNORE_HTTP_FEEDBACK" \
         --set_version 9.1.1 &
 FUZZ_PID=$!
 

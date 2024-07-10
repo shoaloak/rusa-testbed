@@ -105,6 +105,7 @@ python3 ./restler/restler.py \
         --include_user_agent \
         --enable_checkers ['*'] \
         --disable_checkers ['namespacerule'] \
+        --ignore_feedback "$IGNORE_HTTP_FEEDBACK" \
         --set_version 9.1.1 &
 FUZZ_PID=$!
 

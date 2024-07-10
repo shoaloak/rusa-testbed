@@ -50,11 +50,13 @@ LABEL org.opencontainers.image.authors="dev@axelkoolhaas.com"
 ARG PREFIX="org.springframework.samples.petclinic.repository.jdbc."
 ARG TARGET="JdbcVetRepositoryImpl:vulnFindById"
 ARG VULN=vuln1
+ARG IGNORE_HTTP_FEEDBACK=false
 
 # Propegate build time args to runtime as well
 ENV PREFIX=${PREFIX}
 ENV TARGET=${TARGET}
 ENV VULN=${VULN}
+ENV IGNORE_HTTP_FEEDBACK=${IGNORE_HTTP_FEEDBACK}
 
 # Install dependencies (OpenJDK17 and Python3.10)
 # and fix java certificate issues by updating SSL certs
