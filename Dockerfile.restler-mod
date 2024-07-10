@@ -2,11 +2,13 @@
 # OpenAPI compile stage
 ################################################################################
 # Dotnet required for compiling grammar, builds RESTler as well
-FROM mcr.microsoft.com/dotnet/sdk:6.0-alpine as compile
+FROM mcr.microsoft.com/dotnet/sdk:6.0 as compile
 
 # Install deps
-RUN apk add --no-cache python3 py3-pip py3-requests py3-yaml
-#     && pip3 install requests applicationinsights
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && apt-get install -y python3 python3-pip python3-requests python3-yaml \
+    && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 
