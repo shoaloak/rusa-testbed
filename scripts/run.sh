@@ -59,7 +59,8 @@ run_test() {
     printf "running 'testbed-%s-%s' for %s\nCPUs=%s\n\n" \
         "$tool" "$vuln_no" "$target" "$CPU"
 
-    for i in {1..3}; do
+    #for i in {1..3}; do
+    for i in {1..1}; do
         echo "Iteration $i for vulnerability ${vuln_no} (${target})"
 
         start_database
@@ -70,6 +71,7 @@ run_test() {
         echo "Executing container for vulnerability ${vuln_no} (${target})"
         podman run -ti \
             --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
+	    --memory 224g \
             --network testbed-network \
             --volume "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}":/host_result_folder:Z \
             -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
