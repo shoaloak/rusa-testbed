@@ -18,24 +18,30 @@ readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
 readonly CPU=$(get_target_cpu)
 readonly TIMEOUT=$((5*60*60)) # 5 hours
 
+log() {
+    local message="$1"
+    echo "$message" >> "${RESULT_PATH}/run.out"
+}
+
 # Function to check if the DB is ready
 check_postgres() {
-    docker exec "${DB}" pg_isready -U postgres
+    podman exec "${DB}" pg_isready -U postgres
     return $?
 }
 
 start_database() {
     echo "Starting database..."
-    docker run \
+    podman run \
         --rm \
+        --replace \
         --detach \
         --name "${DB}" \
         --network testbed-network \
         -e POSTGRES_DB=petclinic \
         -e POSTGRES_PASSWORD=petclinic \
-        -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/ \
+        -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/:Z \
         postgres:16.0
-    # sleep 4 # usually takes 2s, but wait 4s to be safe
+    sleep 2 # usually takes 2s
     until check_postgres; do
         echo "Waiting for PostgreSQL to be ready..."
         sleep 1
@@ -57,32 +63,32 @@ run_test() {
         echo "Iteration $i for vulnerability ${vuln_no} (${target})"
 
         start_database
+        # podman doesn't create volumes :'(
+        mkdir -p "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
+
 
         echo "Executing container for vulnerability ${vuln_no} (${target})"
-        docker run -ti \
+        podman run -ti \
             --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
             --network testbed-network \
-            --volume "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}":/host_result_folder \
+            --volume "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}":/host_result_folder:Z \
             -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
             -e TIMEOUT_SEC=${TIMEOUT} \
             ${ignore_http_feedback:+-e IGNORE_HTTP_FEEDBACK=true} \
             "testbed-${vuln_no}" $tool
 
-        docker stop petclinic-db-postgresql
+        podman stop "${DB}"
     done
 }
 
 
 # Initialize
-if ! docker network ls | grep -qw testbed-network; then
+if ! podman network ls | grep -qw testbed-network; then
     echo "Network does not exist. Creating network..."
-    docker network create testbed-network
+    podman network create testbed-network
 else
     echo "Network already exists. Skipping creation..."
 fi
-
-echo "Ensure fresh database..."
-docker stop petclinic-db-postgresql > /dev/null 2>&1 || true
 
 echo "Create result folder..."
 if ! mkdir -p "${RESULT_PATH}"; then
@@ -91,36 +97,52 @@ if ! mkdir -p "${RESULT_PATH}"; then
 fi
 
 # RESTler
+log "RESTler /w HTTP feedback start"
+start_time=$(date +%s)
 for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
     run_test "$vuln_no" "$target" "restler" "http" false
 done
-
-echo "50% done"
+stop_time=$(date +%s)
+total=$((stop_time - start_time))
+log "RESTler /w HTTP feedback done, time taken: $total seconds"
 
 # Rusa
+log "Rusa /w HTTP feedback start"
+start_time=$(date +%s)
 for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
     run_test "$vuln_no" "$target" "rusa" "http" false
 done
+stop_time=$(date +%s)
+total=$((stop_time - start_time))
+log "Rusa /w HTTP feedback done, time taken: $total seconds"
 
-echo "BONUS, ignore HTTP headers"
+echo "HALFWAY THERE"
 
 # RESTler
+log "RESTler /wo HTTP feedback start"
+start_time=$(date +%s)
 for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
     run_test "$vuln_no" "$target" "restler" "no_http" true
 done
-
-echo "50% done"
+stop_time=$(date +%s)
+total=$((stop_time - start_time))
+log "RESTler /wo HTTP feedback done, time taken: $total seconds"
 
 # Rusa
+log "Rusa /wo HTTP feedback start"
+start_time=$(date +%s)
 for vuln_no in "${TARGET_KEYS[@]}"; do
     target="${TARGETS[$vuln_no]}"
     run_test "$vuln_no" "$target" "rusa" "no_http" true
 done
+stop_time=$(date +%s)
+total=$((stop_time - start_time))
+log "Rusa /wo HTTP feedback done, time taken: $total seconds"
 
 # Remove network
-docker network rm testbed-network
+podman network rm testbed-network
 
 echo "Done"

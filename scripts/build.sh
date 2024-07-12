@@ -16,7 +16,7 @@ for vuln_no in "${TARGET_KEYS[@]}"; do
     print_line
     echo "Building image 'testbed-${vuln_no}' for ${target}"
 
-    docker build \
+    buildah build \
         --build-arg PREFIX="${TARGET_PREFIX}" \
         --build-arg TARGET="${target}" \
         --build-arg VULN="${vuln_no}" \
