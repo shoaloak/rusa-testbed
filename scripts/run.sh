@@ -40,7 +40,7 @@ start_database() {
         -e POSTGRES_DB=petclinic \
         -e POSTGRES_PASSWORD=petclinic \
         -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/:Z \
-        postgres:16.0
+        docker.io/library/postgres:16.0
     sleep 2 # usually takes 2s
     until check_postgres; do
         echo "Waiting for PostgreSQL to be ready..."
