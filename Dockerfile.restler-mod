@@ -45,7 +45,7 @@ RUN cp engine.bak ./Compile/engine_settings.json
 # Main stage
 ################################################################################
 # Use Ubuntu Jammy as foundation
-FROM ubuntu:22.04 as base
+FROM ubuntu:24.04 as base
 LABEL org.opencontainers.image.authors="dev@axelkoolhaas.com"
 
 # Default arguments, THESE SHOULD BE OVERRIDDEN
