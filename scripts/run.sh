@@ -65,7 +65,8 @@ run_test() {
         start_database
         # podman doesn't create volumes :'(
         mkdir -p "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
-
+        # Fix: Podman permissions
+        sudo chmod -R 777 "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
 
         echo "Executing container for vulnerability ${vuln_no} (${target})"
         podman run -ti \
