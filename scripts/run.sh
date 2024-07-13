@@ -18,31 +18,39 @@ readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
 readonly CPU=$(get_target_cpu)
 readonly TIMEOUT=$((5*60*60)) # 5 hours
 
+# Initialize async logging
+mkfifo "${RESULT_PATH}/logpipe"
+cat "${RESULT_PATH}/logpipe" >> "${RESULT_PATH}/run.out" &
+
 log() {
     local message="$1"
-    echo "$message" >> "${RESULT_PATH}/run.out"
+    #echo "$message" >> "${RESULT_PATH}/run.out"
+    echo "$message" > "${RESULT_PATH}/logpipe"
 }
 
 # Function to check if the DB is ready
 check_postgres() {
-    podman exec "${DB}" pg_isready -U postgres
+    local db_name="$1"
+    podman exec "${db_name}" pg_isready -U postgres
     return $?
 }
 
 start_database() {
+    local db_name="$1"
+
     echo "Starting database..."
     podman run \
         --rm \
         --replace \
         --detach \
-        --name "${DB}" \
+        --name "${db_name}" \
         --network testbed-network \
         -e POSTGRES_DB=petclinic \
         -e POSTGRES_PASSWORD=petclinic \
         -v "${SCRIPT_PATH}/../resources/postgresql":/docker-entrypoint-initdb.d/:Z \
         docker.io/library/postgres:16.0
     sleep 2 # usually takes 2s
-    until check_postgres; do
+    until check_postgres "${db_name}"; do
         echo "Waiting for PostgreSQL to be ready..."
         sleep 1
     done
@@ -63,10 +71,12 @@ run_test() {
     for i in {1..1}; do
         echo "Iteration $i for vulnerability ${vuln_no} (${target})"
 
-        start_database
+        FQDN="${DB}-${tool}-${suffix}-${vuln_no}"
+        start_database "${FQDN}"
         # podman doesn't create volumes :'(
         mkdir -p "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
-
+        # Fix: Podman permissions
+        sudo chmod -R 777 "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
 
         echo "Executing container for vulnerability ${vuln_no} (${target})"
         podman run -ti \
@@ -74,12 +84,12 @@ run_test() {
 	    --memory 224g \
             --network testbed-network \
             --volume "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}":/host_result_folder:Z \
-            -e DB="jdbc:postgresql://${DB}:5432/petclinic" \
+            -e DB="jdbc:postgresql://${FQDN}:5432/petclinic" \
             -e TIMEOUT_SEC=${TIMEOUT} \
             ${ignore_http_feedback:+-e IGNORE_HTTP_FEEDBACK=true} \
-            "testbed-${vuln_no}" $tool
+            "testbed-${vuln_no}" "${tool}"
 
-        podman stop "${DB}"
+        podman stop "${FQDN}"
     done
 }
 
@@ -97,52 +107,63 @@ if ! mkdir -p "${RESULT_PATH}"; then
     echo "Error: Unable to create directory at ${RESULT_PATH}"
     exit 1
 fi
+# Fix: Podman permissions extra
+sudo chmod -R 777 "${RESULT_PATH}"
 
 # RESTler
-log "RESTler /w HTTP feedback start"
-start_time=$(date +%s)
-for vuln_no in "${TARGET_KEYS[@]}"; do
-    target="${TARGETS[$vuln_no]}"
-    run_test "$vuln_no" "$target" "restler" "http" false
-done
-stop_time=$(date +%s)
-total=$((stop_time - start_time))
-log "RESTler /w HTTP feedback done, time taken: $total seconds"
+(
+    log "RESTler /w HTTP feedback start"
+    start_time=$(date +%s)
+    for vuln_no in "${TARGET_KEYS[@]}"; do
+        target="${TARGETS[$vuln_no]}"
+        run_test "$vuln_no" "$target" "restler" "http" false
+    done
+    stop_time=$(date +%s)
+    total=$((stop_time - start_time))
+    log "RESTler /w HTTP feedback done, time taken: $total seconds"
+) &
 
 # Rusa
-log "Rusa /w HTTP feedback start"
-start_time=$(date +%s)
-for vuln_no in "${TARGET_KEYS[@]}"; do
-    target="${TARGETS[$vuln_no]}"
-    run_test "$vuln_no" "$target" "rusa" "http" false
-done
-stop_time=$(date +%s)
-total=$((stop_time - start_time))
-log "Rusa /w HTTP feedback done, time taken: $total seconds"
-
-echo "HALFWAY THERE"
+(
+    log "Rusa /w HTTP feedback start"
+    start_time=$(date +%s)
+    for vuln_no in "${TARGET_KEYS[@]}"; do
+        target="${TARGETS[$vuln_no]}"
+        run_test "$vuln_no" "$target" "rusa" "http" false
+    done
+    stop_time=$(date +%s)
+    total=$((stop_time - start_time))
+    log "Rusa /w HTTP feedback done, time taken: $total seconds"
+) &
 
 # RESTler
-log "RESTler /wo HTTP feedback start"
-start_time=$(date +%s)
-for vuln_no in "${TARGET_KEYS[@]}"; do
-    target="${TARGETS[$vuln_no]}"
-    run_test "$vuln_no" "$target" "restler" "no_http" true
-done
-stop_time=$(date +%s)
-total=$((stop_time - start_time))
-log "RESTler /wo HTTP feedback done, time taken: $total seconds"
+(
+    log "RESTler /wo HTTP feedback start"
+    start_time=$(date +%s)
+    for vuln_no in "${TARGET_KEYS[@]}"; do
+        target="${TARGETS[$vuln_no]}"
+        run_test "$vuln_no" "$target" "restler" "no_http" true
+    done
+    stop_time=$(date +%s)
+    total=$((stop_time - start_time))
+    log "RESTler /wo HTTP feedback done, time taken: $total seconds"
+) &
 
 # Rusa
-log "Rusa /wo HTTP feedback start"
-start_time=$(date +%s)
-for vuln_no in "${TARGET_KEYS[@]}"; do
-    target="${TARGETS[$vuln_no]}"
-    run_test "$vuln_no" "$target" "rusa" "no_http" true
-done
-stop_time=$(date +%s)
-total=$((stop_time - start_time))
-log "Rusa /wo HTTP feedback done, time taken: $total seconds"
+(
+    log "Rusa /wo HTTP feedback start"
+    start_time=$(date +%s)
+    for vuln_no in "${TARGET_KEYS[@]}"; do
+        target="${TARGETS[$vuln_no]}"
+        run_test "$vuln_no" "$target" "rusa" "no_http" true
+    done
+    stop_time=$(date +%s)
+    total=$((stop_time - start_time))
+    log "Rusa /wo HTTP feedback done, time taken: $total seconds"
+) &
+
+# Wait for all tests to finish
+wait
 
 # Remove network
 podman network rm testbed-network
