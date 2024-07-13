@@ -27,18 +27,24 @@ RUN ./build/restler/Restler compile --api_spec openapi.yml
 # Generate SQLi payloads and create custom config
 ARG DICT="sqliDict"
 ARG CONF="customConfig"
-COPY ./resources/initDB.sql .
-COPY ./restler/restler-mod/sqli_dict_generator.py .
-RUN sed 's/Compile\/defaultDict/'"$DICT"'/g' ./Compile/config.json > "$CONF".json \
-    && python3 sqli_dict_generator.py \
-        --dict-path "$DICT".json \
-        --api_spec openapi.yml \
-        --sql initDB.sql
+#COPY ./resources/initDB.sql .
+#COPY ./restler/restler-mod/sqli_dict_generator.py .
+COPY ./resources/dict_subset.json "$DICT".json
+#COPY ./resources/dict_subsubset.json "$DICT".json
+RUN sed 's/Compile\/defaultDict/'"$DICT"'/g' ./Compile/config.json > "$CONF".json
+#    && python3 sqli_dict_generator.py \
+#        --dict-path "$DICT".json \
+#        --api_spec openapi.yml \
+#        --sql initDB.sql
 
 # Recompile, TEMPORARY: backup engine settings
-RUN cp ./Compile/engine_settings.json engine.bak
+#RUN cp ./Compile/engine_settings.json engine.bak
 RUN ./build/restler/Restler compile $CONF.json
-RUN cp engine.bak ./Compile/engine_settings.json
+#RUN cp engine.bak ./Compile/engine_settings.json
+
+# fix engine settings
+RUN sed -i 's/20/1187/g' ./Compile/engine_settings.json
+#RUN sed -i 's/20/120/g' ./Compile/engine_settings.json
 # grammar is stored in ./Compile
 
 ################################################################################
