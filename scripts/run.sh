@@ -18,6 +18,15 @@ readonly RESULT_PATH="${SCRIPT_PATH}/../results/run-${TIMESTAMP}"
 readonly CPU=$(get_target_cpu)
 readonly TIMEOUT=$((5*60*60)) # 5 hours
 
+echo "Create result folder..."
+if ! mkdir -p "${RESULT_PATH}"; then
+    echo "Error: Unable to create directory at ${RESULT_PATH}"
+    exit 1
+fi
+# Fix: Podman permissions extra
+sudo chmod -R 777 "${RESULT_PATH}"
+
+
 # Initialize async logging
 mkfifo "${RESULT_PATH}/logpipe"
 cat "${RESULT_PATH}/logpipe" >> "${RESULT_PATH}/run.out" &
@@ -79,8 +88,8 @@ run_test() {
         sudo chmod -R 777 "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}"
 
         echo "Executing container for vulnerability ${vuln_no} (${target})"
+            #--cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
         podman run -ti \
-            --cpus="${CPU}" --cpuset-cpus=0-$((CPU - 1)) \
 	    --memory 224g \
             --network testbed-network \
             --volume "${RESULT_PATH}/${vuln_no}/${tool}/${i}/${suffix}":/host_result_folder:Z \
@@ -101,14 +110,6 @@ if ! podman network ls | grep -qw testbed-network; then
 else
     echo "Network already exists. Skipping creation..."
 fi
-
-echo "Create result folder..."
-if ! mkdir -p "${RESULT_PATH}"; then
-    echo "Error: Unable to create directory at ${RESULT_PATH}"
-    exit 1
-fi
-# Fix: Podman permissions extra
-sudo chmod -R 777 "${RESULT_PATH}"
 
 # RESTler
 (
